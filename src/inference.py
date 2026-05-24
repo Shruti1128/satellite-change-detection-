@@ -46,7 +46,7 @@ def predict_patch(model, t1_arr, t2_arr, device, transform):
     Returns:
         prob_map: np.ndarray [H, W] float32, values in [0, 1]
     """
-    aug = transform(image=t1_arr, image2=t2_arr)
+
 
     # albumentations ReplayCompose not needed here — just basic transform
     t1_aug = A.Compose([

@@ -38,7 +38,7 @@ class CopernicusClient:
                 f"Authentication failed: {response.status_code} {response.text}"
             )
 
-    def search_scenes(self, bbox, date_str, days_window=15, max_cloud=20):
+    def search_scenes(self, bbox, date_str, days_window=15, cloud_cover=20):
         """
         Search for Sentinel-2 scenes near a date with low cloud cover.
 
@@ -67,7 +67,7 @@ class CopernicusClient:
                 f"ContentDate/Start gt {start} and "
                 f"ContentDate/Start lt {end} and "
                 f"Attributes/OData.CSC.DoubleAttribute/any(att:att/Name eq "
-                f"'cloudCover' and att/OData.CSC.DoubleAttribute/Value le {max_cloud})"
+                f"'cloudCover' and att/OData.CSC.DoubleAttribute/Value le {cloud_cover})"
             ),
             "$orderby": "ContentDate/Start asc",
             "$top": 5,
@@ -118,29 +118,45 @@ def find_band_file(safe_dir, band="B04", resolution="10m"):
     """Find a specific band file inside a .SAFE directory."""
     for root, dirs, files in os.walk(safe_dir):
         for f in files:
-            if band in f and resolution in f and f.endswith(".jp2"):
+            if f.endswith(".jp2"):
+                if band in f:
+                    # For L2A with resolution
+                    if resolution and resolution in f:
+                        return os.path.join(root, f)
+                    # For L1C without resolution in filename
+                    elif not resolution:
+                        return os.path.join(root, f)
+    # Second pass — return any match with band name
+    for root, dirs, files in os.walk(safe_dir):
+        for f in files:
+            if f.endswith(".jp2") and band in f:
                 return os.path.join(root, f)
     return None
 
-
 def safe_to_rgb(safe_dir, output_path, size=1024):
-    """
-    Convert a Sentinel-2 .SAFE folder to an RGB PNG.
-    Uses B04 (Red), B03 (Green), B02 (Blue) at 10m resolution.
-    """
     try:
         import rasterio
         from rasterio.enums import Resampling
 
+        # Try L2A format first (10m resolution suffix)
         b04 = find_band_file(safe_dir, "B04", "10m")
         b03 = find_band_file(safe_dir, "B03", "10m")
         b02 = find_band_file(safe_dir, "B02", "10m")
 
-        if not all([b04, b03, b02]):
-            # Try without resolution suffix
+        # Fall back to L1C format (no resolution suffix)
+        if not b04:
             b04 = find_band_file(safe_dir, "B04", "")
+        if not b03:
             b03 = find_band_file(safe_dir, "B03", "")
+        if not b02:
             b02 = find_band_file(safe_dir, "B02", "")
+
+        print(f"B04: {b04}")
+        print(f"B03: {b03}")
+        print(f"B02: {b02}")
+
+        if not all([b04, b03, b02]):
+            raise Exception(f"Could not find RGB bands in {safe_dir}")
 
         bands = []
         for band_path in [b04, b03, b02]:
@@ -153,8 +169,6 @@ def safe_to_rgb(safe_dir, output_path, size=1024):
             bands.append(data)
 
         rgb = np.stack(bands, axis=-1)
-
-        # Normalise to 0-255
         p2, p98 = np.percentile(rgb, (2, 98))
         rgb = np.clip((rgb - p2) / (p98 - p2 + 1e-6) * 255, 0, 255).astype(np.uint8)
 
@@ -163,7 +177,7 @@ def safe_to_rgb(safe_dir, output_path, size=1024):
         return output_path
 
     except ImportError:
-        print("rasterio not installed — install with: pip install rasterio")
+        print("rasterio not installed")
         return None
 
 
