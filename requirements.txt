@@ -9,3 +9,6 @@ Pillow
 scipy
 scikit-learn
 tqdm
+streamlit-folium
+folium
+rasterio
