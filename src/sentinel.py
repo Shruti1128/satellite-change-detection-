@@ -134,29 +134,23 @@ def find_band_file(safe_dir, band="B04", resolution="10m"):
     return None
 
 def safe_to_rgb(safe_dir, output_path, size=1024):
+    """
+    Convert a Sentinel-2 .SAFE folder to an RGB PNG.
+    Uses B04 (Red), B03 (Green), B02 (Blue) at 10m resolution.
+    """
     try:
         import rasterio
         from rasterio.enums import Resampling
 
-        # Try L2A format first (10m resolution suffix)
         b04 = find_band_file(safe_dir, "B04", "10m")
         b03 = find_band_file(safe_dir, "B03", "10m")
         b02 = find_band_file(safe_dir, "B02", "10m")
 
-        # Fall back to L1C format (no resolution suffix)
-        if not b04:
-            b04 = find_band_file(safe_dir, "B04", "")
-        if not b03:
-            b03 = find_band_file(safe_dir, "B03", "")
-        if not b02:
-            b02 = find_band_file(safe_dir, "B02", "")
-
-        print(f"B04: {b04}")
-        print(f"B03: {b03}")
-        print(f"B02: {b02}")
-
         if not all([b04, b03, b02]):
-            raise Exception(f"Could not find RGB bands in {safe_dir}")
+            # Try without resolution suffix
+            b04 = find_band_file(safe_dir, "B04", "")
+            b03 = find_band_file(safe_dir, "B03", "")
+            b02 = find_band_file(safe_dir, "B02", "")
 
         bands = []
         for band_path in [b04, b03, b02]:
@@ -169,6 +163,8 @@ def safe_to_rgb(safe_dir, output_path, size=1024):
             bands.append(data)
 
         rgb = np.stack(bands, axis=-1)
+
+        # Normalise to 0-255
         p2, p98 = np.percentile(rgb, (2, 98))
         rgb = np.clip((rgb - p2) / (p98 - p2 + 1e-6) * 255, 0, 255).astype(np.uint8)
 
@@ -177,7 +173,7 @@ def safe_to_rgb(safe_dir, output_path, size=1024):
         return output_path
 
     except ImportError:
-        print("rasterio not installed")
+        print("rasterio not installed — install with: pip install rasterio")
         return None
 
 

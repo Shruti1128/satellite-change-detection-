@@ -14,7 +14,7 @@ from inference import predict_patch
 
 
 st.set_page_config(
-    page_title="Satellite Change Detection",
+    page_title="Satellite Imagery Change Detection",
     page_icon="🛰️",
     layout="wide"
 )
