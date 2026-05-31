@@ -12,3 +12,4 @@ tqdm
 streamlit-folium
 folium
 rasterio
+python-dotenv
