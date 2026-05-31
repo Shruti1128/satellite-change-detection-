@@ -2,6 +2,7 @@
 A deep learning system for detecting land cover changes from satellite imagery, powered by a Siamese ResNet-50 architecture and live Sentinel-2 data from the ESA Copernicus API.
 
 🔗 **Live Demo:** [shruti-satellite-detection.streamlit.app](https://shruti-satellite-detection.streamlit.app)
+> Opens in **instant demo mode** by default — no waiting. Switch to Live Sentinel-2 mode to download real-time imagery locally.
 
 ---
 
